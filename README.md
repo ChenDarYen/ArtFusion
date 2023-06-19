@@ -2,6 +2,8 @@
 
 [arXiv](https://arxiv.org/abs/2306.09330) | [BibTeX](#bibtex)
 
+*Author: Dar-Yen Chen*
+
 This implementation is based on the [CompVis/latent-diffusion](https://github.com/CompVis/latent-diffusion) repository.
 
 <p align="center">
