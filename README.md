@@ -58,9 +58,9 @@ Please download and place the datasets as:
     └── wiki-art
 ```
 
-Download the [first-stage VAE](https://ommer-lab.com/files/latent-diffusion/kl-f16.zip) utilized in LDM to the folder `./checkpoints/vae/`.
+Download the [first-stage VAE](https://ommer-lab.com/files/latent-diffusion/kl-f16.zip) utilized in LDM to `./checkpoints/vae/kl-f16.ckpt`.
 
-Then run:
+Then run the commands:
 
 ```
 python main.py \
