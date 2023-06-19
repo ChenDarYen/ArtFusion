@@ -71,6 +71,15 @@ python main.py \
     --gpus 0,
 ```
 
+## Inference
+After training, inference can be done via the [notebook](notebooks/style_transfer.ipynb).
+
+Type following to set the conda environment on jupyter notebook.
+
+```
+python -m ipykernel install --user --name artfusion
+```
+
 ## License
 
 This project is released under the [MIT License](LICENSE).
