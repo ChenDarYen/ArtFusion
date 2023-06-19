@@ -988,11 +988,9 @@ class StyleUNetModel(UNetModel):
 
     def forward(self, x, timesteps, content, style, *args, **kwargs):
         emb = self.time_embed(timesteps)
-
-        if not self.style_only:
-            if self.content_in_dim != self.content_refined_dim:
-                shift, scale = self.content_adaLN_modulation(emb)[..., None, None].chunk(2, dim=1)
-                content = self.content_in(modulate(content, shift, scale))
+        if self.content_in_dim != self.content_refined_dim:
+            shift, scale = self.content_adaLN_modulation(emb)[..., None, None].chunk(2, dim=1)
+            content = self.content_in(modulate(content, shift, scale))
 
         x = torch.cat((x, content), dim=1)
         return super().forward(x, emb, style)
