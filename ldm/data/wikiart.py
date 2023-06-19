@@ -97,7 +97,7 @@ class WikiArtTrain(Base):
 
 class WikiArtValidation(Base):
     def __init__(self, size=384, crop_size=256, random_augment=False,
-                 root='datasets/wiki-art_384/', base=None, *args, **kwargs):
+                 root='datasets/wiki-art/', base=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         relpaths = get_all_images(root)['val']
         paths = [os.path.join(root, relpath) for relpath in relpaths]
@@ -109,7 +109,7 @@ class WikiArtValidation(Base):
 class HybridTrain(Base):
     def __init__(self,
                  style_size=384, style_crop_size=256, content_size=384, content_crop_size=256, random_augment=True,
-                 style_root='datasets/wiki-art_512/', content_root='datasets/ms_coco/',
+                 style_root='datasets/wiki-art/', content_root='datasets/ms-coco/',
                  *args, **kwargs):
         super().__init__(*args, **kwargs)
         style_relpaths = get_all_images(style_root)['train']
