@@ -7,11 +7,11 @@ import numpy as np
 from PIL import Image
 import torch
 import torchvision
-from torch.utils.data import random_split, DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset
 import pytorch_lightning as pl
 from pytorch_lightning import seed_everything
 from pytorch_lightning.trainer import Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint, Callback, LearningRateMonitor
+from pytorch_lightning.callbacks import Callback
 from pytorch_lightning.utilities.distributed import rank_zero_only
 from pytorch_lightning.loggers import TensorBoardLogger
 
@@ -150,7 +150,7 @@ class WrappedDataset(Dataset):
 
 
 class DataModuleFromConfig(pl.LightningDataModule):
-    def __init__(self, batch_size, val_scale=6, train=None, validation=None, validation2=None, test=None,
+    def __init__(self, batch_size, val_scale=6, train=None, validation=None, test=None,
                  wrap=False, num_workers=None):
         super().__init__()
         self.batch_size = batch_size
@@ -162,8 +162,6 @@ class DataModuleFromConfig(pl.LightningDataModule):
             self.train_dataloader = self._train_dataloader
         if validation is not None:
             self.dataset_configs["validation"] = validation
-            if validation2 is not None:
-                self.dataset_configs["validation2"] = validation2
             self.val_dataloader = self._val_dataloader
         if test is not None:
             self.dataset_configs["test"] = test
@@ -188,18 +186,10 @@ class DataModuleFromConfig(pl.LightningDataModule):
                           pin_memory=False, drop_last=False)
 
     def _val_dataloader(self):
-        dataloader = DataLoader(self.datasets["validation"],
-                                batch_size=self.batch_size * self.val_scale,
-                                num_workers=self.num_workers, collate_fn=custom_collate,
-                                pin_memory=False, drop_last=False)
-        if self.datasets.get('validation2', None) is None:
-            return dataloader
-
-        dataloader2 = DataLoader(self.datasets["validation2"],
-                                batch_size=self.batch_size * self.val_scale,
-                                num_workers=self.num_workers, collate_fn=custom_collate,
-                                pin_memory=False, drop_last=False)
-        return [dataloader, dataloader2]
+        return DataLoader(self.datasets["validation"],
+                          batch_size=self.batch_size * self.val_scale,
+                          num_workers=self.num_workers, collate_fn=custom_collate,
+                          pin_memory=False, drop_last=False)
 
     def _test_dataloader(self):
         return DataLoader(self.datasets["test"], batch_size=self.batch_size * self.val_scale,
@@ -358,8 +348,7 @@ class ImageLogger(ImageLoggerBase):
             if is_train:
                 pl_module.eval()
 
-            with torch.no_grad():
-                images = pl_module.log_images(batch, stack=(split == 'val_2'))
+            images = pl_module.log_images(batch)
 
             for k in images:
                 if len(images[k]) < self.nrow:
@@ -387,13 +376,7 @@ class ImageLogger(ImageLoggerBase):
                 pl_module.train()
 
     def check_log(self, split, global_step, batch_idx):
-        return (split == 'train' and self.check_frequency(global_step)) \
-               or (split == 'val' and batch_idx == 0) \
-               or (split == 'val_1' and (batch_idx < 32 or 700 <= batch_idx < 732)) \
-               or (split == 'test' and batch_idx == 0)
-
-    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx):
-        self.log_img(pl_module, batch, batch_idx, split="val" if dataloader_idx == 0 else 'val_1')
+        return (split == 'train' and self.check_frequency(global_step)) or (split == 'val' and batch_idx == 0)
 
 
 if __name__ == "__main__":
