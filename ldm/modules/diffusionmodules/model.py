@@ -919,9 +919,8 @@ class UNetModel(nn.Module):
         nn.init.constant_(self.out.adaLN_modulation[-1].weight, 0)
         nn.init.constant_(self.out.adaLN_modulation[-1].bias, 0)
         nn.init.constant_(self.out.conv.weight, 0)
-        # nn.init.constant_(self.out.conv.bias, 0)
 
-    def forward(self, x, emb, context=None, y=None, **kwargs):
+    def forward(self, x, emb, context=None, y=None, *args, **kwargs):
         """
         Apply the model to an input batch.
         :param x: an [N x C x ...] Tensor of inputs.
@@ -963,26 +962,24 @@ class UNetModel(nn.Module):
 
 
 class StyleUNetModel(UNetModel):
-    def __init__(self, in_channels, content_in_dim, style_only=False, content_refined_dim=None, *args, **kwargs):
+    def __init__(self, in_channels, content_in_dim, content_refined_dim=None, *args, **kwargs):
         super().__init__(in_channels=in_channels+content_refined_dim, *args, **kwargs)
-        self.style_only = style_only
+        content_refined_dim = content_refined_dim or content_in_dim
         self.content_in_dim = content_in_dim
         self.content_refined_dim = content_refined_dim
-        if not style_only:
-            assert content_in_dim is not None
-            if content_in_dim != content_refined_dim:
-                self.content_in = nn.Sequential(
-                    nn.Conv2d(content_in_dim, content_refined_dim, 1),
-                    nn.SiLU(),
-                    nn.Conv2d(content_refined_dim, content_refined_dim, 1),
-                )
-                self.content_adaLN_modulation = nn.Sequential(
-                    nn.Linear(self.time_embed_dim, content_in_dim * 2),
-                    nn.SiLU(),
-                    nn.Linear(content_in_dim * 2, content_in_dim * 2),
-                )
+        if content_in_dim != content_refined_dim:
+            self.content_in = nn.Sequential(
+                nn.Conv2d(content_in_dim, content_refined_dim, 1),
+                nn.SiLU(),
+                nn.Conv2d(content_refined_dim, content_refined_dim, 1),
+            )
+            self.content_adaLN_modulation = nn.Sequential(
+                nn.Linear(self.time_embed_dim, content_in_dim * 2),
+                nn.SiLU(),
+                nn.Linear(content_in_dim * 2, content_in_dim * 2),
+            )
 
-                self.initialize_content_weights()
+            self.initialize_content_weights()
 
     def initialize_content_weights(self):
         if hasattr(self, 'content_in'):
