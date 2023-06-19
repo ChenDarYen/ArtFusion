@@ -52,6 +52,9 @@ class DualCondLDM(LatentDiffusion):
                          *args, **kwargs)
         assert cond_stage_key == 'content_and_std_mean'
 
+        self.style_flag_key = style_flag_key
+        self.content_flag_key = content_flag_key
+
         self.layers = self.first_stage_model.num_inter_layers + 1 \
             if hasattr(self.first_stage_model, 'num_inter_layers') else 1
 
@@ -67,9 +70,6 @@ class DualCondLDM(LatentDiffusion):
             self.shift_values = shift_values
             if isinstance(self.shift_values[0], omegaconf.listconfig.ListConfig):
                 self.shift_values = [np.array(s, dtype=np.float32)[None, :, None, None] for s in self.shift_values]
-
-        self.style_flag_key = style_flag_key
-        self.content_flag_key = content_flag_key
 
         self.null_style_vector = torch.nn.Embedding(1, style_dim)
         torch.nn.init.normal_(self.null_style_vector.weight, std=0.02)

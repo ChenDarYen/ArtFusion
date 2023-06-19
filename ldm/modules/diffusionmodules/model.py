@@ -986,8 +986,6 @@ class StyleUNetModel(UNetModel):
 
     def initialize_content_weights(self):
         if hasattr(self, 'content_in'):
-            nn.init.constant_(self.content_in[-1].weight, 0)
-            nn.init.constant_(self.content_in[-1].bias, 0)
             nn.init.constant_(self.content_adaLN_modulation[-1].weight, 0)
             nn.init.constant_(self.content_adaLN_modulation[-1].bias, 0)
 
