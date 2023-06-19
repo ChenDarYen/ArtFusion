@@ -71,20 +71,6 @@ python main.py \
     --gpus 0,
 ```
 
-## Inference
-
-```
-python sample.py \
-    --ckpt_path [/path/to/ckpt] \
-    --base ./configs/kl16_content12.yaml \
-    --content_image ./data/contents/bigben.jpg \
-    --style_image ./data/styles/Claude_Monet_73.jpg \
-    --content_scaler 0.6 \
-    --style_scaler 3. \
-    --width 256 \
-    --height 256
-```
-
 ## License
 
 This project is released under the [MIT License](LICENSE).
