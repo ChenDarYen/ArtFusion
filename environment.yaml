@@ -1,0 +1,26 @@
+name: artfusion
+channels:
+  - pytorch
+  - nvidia
+  - defaults
+dependencies:
+  - python=3.10.8
+  - pip=22.3.1
+  - cuda=11.7.1
+  - pytorch=1.13.1
+  - torchvision=0.14.1
+  - numpy=1.23.4
+  - pip:
+    - albumentations==1.3.0
+    - opencv-python==4.6.0.66
+    - imageio==2.9.0
+    - imageio-ffmpeg==0.4.2
+    - pytorch-lightning==1.6.3
+    - omegaconf==2.1.1
+    - test-tube==0.7.5
+    - streamlit==1.12.1
+    - einops==0.3.0
+    - transformers==4.19.2
+    - jupyter==1.0.0
+    - tensorboard==2.11.0
+    - tqdm==4.64.1
