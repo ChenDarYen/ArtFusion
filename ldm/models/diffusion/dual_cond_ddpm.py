@@ -4,7 +4,6 @@ import numpy as np
 import torch
 from torch.optim.lr_scheduler import LambdaLR
 import pytorch_lightning as pl
-import omegaconf
 from contextlib import contextmanager
 
 from ldm.models.diffusion.ddpm import LatentDiffusion, instantiate_from_config
@@ -55,21 +54,15 @@ class DualCondLDM(LatentDiffusion):
         self.style_flag_key = style_flag_key
         self.content_flag_key = content_flag_key
 
-        self.layers = self.first_stage_model.num_inter_layers + 1 \
-            if hasattr(self.first_stage_model, 'num_inter_layers') else 1
-
+        delattr(self, 'scale_factor')
         if scale_factors is None:
-            self.register_buffer('scale_factors', torch.ones(self.layers) * self.scale_factor)
+            self.register_buffer('scale_factors', torch.ones(1))
         else:
-            self.scale_factors = scale_factors
-            if isinstance(self.scale_factors[0], omegaconf.listconfig.ListConfig):
-                self.scale_factors = [np.array(s, dtype=np.float32)[None, :, None, None] for s in self.scale_factors]
+            self.register_buffer('scale_factors', torch.tensor(scale_factors, dtype=torch.float32))
         if shift_values is None:
-            self.register_buffer('shift_values', torch.ones(self.layers) * (getattr(self, 'shift_value', 0.)))
+            self.register_buffer('shift_values', torch.zeros(1))
         else:
-            self.shift_values = shift_values
-            if isinstance(self.shift_values[0], omegaconf.listconfig.ListConfig):
-                self.shift_values = [np.array(s, dtype=np.float32)[None, :, None, None] for s in self.shift_values]
+            self.register_buffer('shift_values', torch.tensor(shift_values, dtype=torch.float32))
 
         self.null_style_vector = torch.nn.Embedding(1, style_dim)
         torch.nn.init.normal_(self.null_style_vector.weight, std=0.02)
@@ -83,38 +76,18 @@ class DualCondLDM(LatentDiffusion):
         if ckpt_path is not None:
             self.init_from_ckpt(ckpt_path, ignore_keys=ignore_keys, only_model=load_only_unet)
 
-    def move_scaler_shift(self):
-        if isinstance(self.scale_factors[0], np.ndarray):
-            self.scale_factors = [torch.from_numpy(a).to(self.device) for a in self.scale_factors]
-        if isinstance(self.shift_values[0], np.ndarray):
-            self.shift_values = [torch.from_numpy(a).to(self.device) for a in self.shift_values]
-
-    def on_train_start(self) -> None:
-        self.move_scaler_shift()
-
-    def on_validation_start(self) -> None:
-        self.move_scaler_shift()
-
-    def on_test_start(self) -> None:
-        self.move_scaler_shift()
-
     def on_train_batch_start(self, batch, batch_idx, dataloader_idx):
         # only for very first batch
         if self.scale_by_std and self.current_epoch == 0 and self.global_step == 0 and batch_idx == 0 and not self.restarted_from_ckpt:
-            assert self.scale_factor == 1., 'rather not use custom rescaling and std-rescaling simultaneously'
-            # set rescale weight to 1./std of encodings
+            assert self.scale_factor == 1. and self.shift_values == 0., \
+                'rather not use custom rescaling and std-rescaling simultaneously'
             print("### USING STD-RESCALING ###")
-            # x = DDPM.get_input(self, batch, self.first_stage_key)
-            # x = x.to(self.device)
-            # c, encoder_posterior = self.encode_first_stage(x)
-            # inter_zs = self.get_first_stage_encoding(encoder_posterior).detach()
-            zs = self.get_input(batch, self.first_stage_key)[0]
-            zs = torch.chunk(zs, self.layers, dim=1)
+            z = self.get_input(batch, self.first_stage_key)[0]
             del self.scale_factors
             del self.shift_values
             scales, shifts = list(), list()
-            for z in zs:
-                std, mean = torch.std_mean(z)
+            for i in range(z.shape[1]):
+                std, mean = torch.std_mean(z[:, i])
                 scales.append(1. / std)
                 shifts.append(mean)
             self.register_buffer('scale_factors', torch.tensor(scales))
@@ -123,14 +96,15 @@ class DualCondLDM(LatentDiffusion):
             print("### USING STD-RESCALING ###")
 
     def get_first_stage_encoding(self, encoder_posterior):
-        zs = [encoder_posterior.mode()]
-        zs = [f * (z - v) for f, z, v in zip(self.scale_factors, zs, self.shift_values)]
-        return torch.cat(zs, dim=1).detach()
+        z = encoder_posterior.mode()
+        for i in range(z.shape[1]):
+            z[:, i] = (z[:, i] - self.shift_values[i]) * self.scale_factors[i]
+        return z.detach()
 
-    def decode_first_stage(self, zs, predict_cids=False, force_not_quantize=False):
-        zs = [zs]
-        zs = [z / f + v for z, f, v in zip(zs, self.scale_factors, self.shift_values)]
-        return self.first_stage_model.decode(zs[0])
+    def decode_first_stage(self, z, predict_cids=False, force_not_quantize=False):
+        for i in range(z.shape[1]):
+            z[:, i] = z[:, i] / self.scale_factors[i] + self.shift_values[i]
+        return self.first_stage_model.decode(z)
 
     def on_train_batch_end(self, *args, **kwargs):
         if self.use_ema:
@@ -216,7 +190,7 @@ class DualCondLDM(LatentDiffusion):
         x = x.to(self.device)
         encoder_posterior = self.encode_first_stage(x, return_features=False)
         encoder_posterior = self.get_first_stage_encoding(encoder_posterior)
-        zs = encoder_posterior
+        z = encoder_posterior
 
         content_flag = batch[self.content_flag_key]
         style_flag = batch[self.style_flag_key]
@@ -230,10 +204,10 @@ class DualCondLDM(LatentDiffusion):
 
         c = {'c1': c_content, 'c2': c_style}
 
-        out = [zs, c]
+        out = [z, c]
 
         if return_first_stage_outputs:
-            xrec = self.decode_first_stage(zs)
+            xrec = self.decode_first_stage(z)
             out.extend([x, xrec])
         if return_content_features:
             out.append(encoder_posterior)

@@ -116,7 +116,6 @@ class LatentDiffusion(pl.LightningModule):
                  ):
         super().__init__()
         self.num_timesteps_cond = default(num_timesteps_cond, 1)
-        self.scale_by_std = scale_by_std
         assert self.num_timesteps_cond <= timesteps
         # for backwards compatibility after implementation of DiffusionWrapper
         if conditioning_key is None:
@@ -161,6 +160,9 @@ class LatentDiffusion(pl.LightningModule):
         else:
             self.register_buffer('logvar', logvar)
 
+        self.scale_by_std = scale_by_std
+        self.register_buffer('scale_factor', torch.tensor(scale_factor))
+
         if monitor is not None:
             self.monitor = monitor
             self.monitor_mode = monitor_mode
@@ -172,10 +174,6 @@ class LatentDiffusion(pl.LightningModule):
             self.num_downs = len(first_stage_config.params.ddconfig.ch_mult) - 1
         except:
             self.num_downs = 0
-        if not scale_by_std:
-            self.scale_factor = scale_factor
-        else:
-            self.register_buffer('scale_factor', torch.tensor(scale_factor))
         self.instantiate_first_stage(first_stage_config)
         self.instantiate_cond_stage(cond_stage_config)
         self.cond_stage_forward = cond_stage_forward
