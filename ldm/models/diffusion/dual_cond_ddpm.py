@@ -163,8 +163,8 @@ class DualCondLDM(LatentDiffusion):
         return self.p_losses(x, c, t, *args, **kwargs)
 
     @torch.no_grad()
-    def encode_first_stage(self, x, return_features=True):
-        return self.first_stage_model.encode(x, return_features=return_features)
+    def encode_first_stage(self, x):
+        return self.first_stage_model.encode(x)
 
     def get_style_features(self, features, flag=None):
         style_features = torch.cat([torch.cat(torch.std_mean(f, dim=[-1, -2]), dim=1) for f in features], dim=1)
@@ -188,7 +188,7 @@ class DualCondLDM(LatentDiffusion):
         if bs is not None:
             x = x[:bs]
         x = x.to(self.device)
-        encoder_posterior = self.encode_first_stage(x, return_features=False)
+        encoder_posterior = self.encode_first_stage(x)
         encoder_posterior = self.get_first_stage_encoding(encoder_posterior)
         z = encoder_posterior
 
