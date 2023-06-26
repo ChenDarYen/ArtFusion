@@ -1,4 +1,4 @@
-# ArtFusion: Arbitrary Style Transfer using Dual Conditional Latent Diffusion Models<br><sub>Official PyTorch Implementation</sub>
+# ArtFusion: Controllable Arbitrary Style Transfer using Dual Conditional Latent Diffusion Models<br><sub>Official PyTorch Implementation</sub>
 
 [arXiv](https://arxiv.org/abs/2306.09330) | [BibTeX](#bibtex)
 
