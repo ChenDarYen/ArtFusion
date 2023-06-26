@@ -96,7 +96,7 @@ If you find this repository useful for your research, please cite using the foll
 
 ```
 @misc{chen2023artfusion,
-      title={ArtFusion: Arbitrary Style Transfer using Dual Conditional Latent Diffusion Models}, 
+      title={ArtFusion: Controllable Arbitrary Style Transfer using Dual Conditional Latent Diffusion Models}, 
       author={Dar-Yen Chen},
       year={2023},
       eprint={2306.09330},
