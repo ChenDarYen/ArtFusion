@@ -73,10 +73,15 @@ python main.py \
     --gpus 0,
 ```
 
-## Inference
-After training, inference can be done via the [notebook](notebooks/style_transfer.ipynb).
+## Pretrained Model
+The pretrained model can be downloaded [here](https://1drv.ms/u/s!AuZJlZC8oVPfgWC2O77TUlhIfELG?e=RoSa8a).
 
-Type following to set the conda environment on jupyter notebook.
+Please place it at the folder `./checkpoints/artfusion/`.
+
+## Inference
+Inference can be done via the [notebook](notebooks/style_transfer.ipynb).
+
+Type following to set the conda environment on the jupyter notebook.
 
 ```
 python -m ipykernel install --user --name artfusion
