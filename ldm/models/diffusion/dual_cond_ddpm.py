@@ -214,7 +214,7 @@ class DualCondLDM(LatentDiffusion):
         return out
 
     @torch.no_grad()
-    def log_images(self, batch, N=8, n_row=4, sample=True, ddim_steps=10, ddim_eta=1., return_keys=None, **kwargs):
+    def log_images(self, batch, N=8, n_row=4, sample=True, ddim_steps=10, ddim_eta=0., return_keys=None, **kwargs):
         with self.ema_scope("Plotting"):
             use_ddim = ddim_steps is not None
 
